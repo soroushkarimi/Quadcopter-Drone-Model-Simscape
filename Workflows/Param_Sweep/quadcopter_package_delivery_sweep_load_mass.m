@@ -9,7 +9,7 @@ orig_mdl = 'quadcopter_package_delivery';
 open_system(orig_mdl);
 quadcopter_package_parameters
 [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = ...
-    quadcopter_package_select_trajectory(1);
+    quadcopter_package_select_trajectory(7);
 
 mdl = [orig_mdl '_pct_temp'];
 save_system(orig_mdl,mdl);
@@ -17,7 +17,7 @@ save_system(orig_mdl,mdl);
 %% Generate parameter sets
 pkgSize = evalin('base','pkgSize');
 pkgVol  = pkgSize(1)*pkgSize(2)*pkgSize(3);
-pkgDensity_array = linspace(0.5/pkgVol,2.2/pkgVol,12); 
+pkgDensity_array = linspace(0.5/pkgVol,1.5/pkgVol,4); 
 
 clear simInput
 simInput(1:length(pkgDensity_array)) = Simulink.SimulationInput(mdl);
@@ -61,6 +61,7 @@ disp(' ');
 %% Plot results
 plot_sim_res(simInput,simOut,waypoints,planex,planey,'Parallel Test',Elapsed_Time_Time_parallel)
 plot_sim_res_batt(simInput,simOut)
+plot_sim_res_att(simInput,simOut)
 
 %% Close parallel pool
 delete(gcp);
@@ -172,4 +173,69 @@ legend(legendstr,'Location','Best');
 xlabel('Time (sec)');
 ylabel('SOC (A*hr)');
 
+end
+
+%%  Function to plot Attitude of aircraft during tests
+function plot_sim_res_att(simInput,simOut)
+
+% Create/Reuse figure and define handle in workspace
+fig_handle_name =   'h6_quadcopter_package_delivery_pct_mass';
+
+handle_var = evalin('base',['who(''' fig_handle_name ''')']);
+if(isempty(handle_var))
+    evalin('base',[fig_handle_name ' = figure(''Name'', ''' fig_handle_name ''');']);
+elseif ~isgraphics(evalin('base',handle_var{:}))
+    evalin('base',[fig_handle_name ' = figure(''Name'', ''' fig_handle_name ''');']);
+end
+figure(evalin('base',fig_handle_name))
+clf(evalin('base',fig_handle_name))
+
+% Plot state of charge
+for i=1:length(simOut)
+    simlog_px = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.px.Data;
+    simlog_py = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.py.Data;
+    simlog_pz = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.pz.Data;
+    simlog_vx = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.vx.Data;
+    simlog_vy = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.vy.Data;
+    simlog_vz = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.vz.Data;
+    simlog_qx = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.roll.Data;
+    simlog_qy = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.pitch.Data;
+    simlog_qz = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.yaw.Data;
+    simlog_t  = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.px.Time;
+    
+    ref_pxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.pos.Data(:,:)';
+    ref_vxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.vel.Data(:,:)';
+    ref_roll = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.roll.Data(:,:)';
+    ref_pitch = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.pitch.Data(:,:)';
+    ref_yaw = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.yaw.Data(:,:)';
+    
+    % missionStatus = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Load.status.Data(end);
+    % LineStyle = '-';
+    % LineWidth = 2;
+
+    % if(missionStatus == 0)
+    %     % If joint is still engaged at finish, mission failed
+    %     LineStyle = ':';
+    %     LineWidth = 0.5;
+    % end
+
+    if(size(ref_pxyz,2)>3)
+    ref_pxyz = ref_pxyz';
+    ref_vxyz = ref_vxyz';
+    end
+    
+    % plot(simlog_t, ref_pxyz(:,1), 'k--','LineWidth', 1,'DisplayName','Ref')
+    % hold on
+    % plot(simlog_t, simlog_px, 'LineWidth', 1,'DisplayName','Meas');
+    plot(simlog_t, squeeze(simlog_qy)*180/pi, 'LineWidth', 1,'DisplayName','Meas')
+    % hold off
+    
+    hold all
+    legendstr{i} = sprintf('%3.2f kg',i);
+end
+    
+    grid on
+    title('Pitch sweep')
+    legend(legendstr,'Location','Best')
+    xlabel('Time (s)')
 end
