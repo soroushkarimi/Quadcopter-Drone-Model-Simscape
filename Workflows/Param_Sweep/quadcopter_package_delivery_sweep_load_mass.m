@@ -9,7 +9,7 @@ orig_mdl = 'quadcopter_package_delivery';
 open_system(orig_mdl);
 quadcopter_package_parameters
 [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = ...
-    quadcopter_package_select_trajectory(7);
+    quadcopter_package_select_trajectory(7,5);
 
 mdl = [orig_mdl '_pct_temp'];
 save_system(orig_mdl,mdl);
@@ -17,12 +17,21 @@ save_system(orig_mdl,mdl);
 %% Generate parameter sets
 pkgSize = evalin('base','pkgSize');
 pkgVol  = pkgSize(1)*pkgSize(2)*pkgSize(3);
-pkgDensity_array = linspace(0.5/pkgVol,1.5/pkgVol,4); 
+pkgDensity_array = linspace(0.5/pkgVol,1.5/pkgVol,4);
+z_array= linspace(4,6,10);
+
+
 
 clear simInput
-simInput(1:length(pkgDensity_array)) = Simulink.SimulationInput(mdl);
-for i=1:length(pkgDensity_array)
-    simInput(i) = simInput(i).setVariable('pkgDensity',pkgDensity_array(i));
+simInput(1:length(z_array)) = Simulink.SimulationInput(mdl);
+for i=1:length(z_array)
+    [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = ...
+    quadcopter_package_select_trajectory(7,z_array(i));
+    simInput(i) = simInput(i).setVariable('waypoints',waypoints);
+    simInput(i) = simInput(i).setVariable('timespot_spl',timespot_spl);
+    simInput(i) = simInput(i).setVariable('spline_data',spline_data);
+    simInput(i) = simInput(i).setVariable('spline_yaw',spline_yaw);
+    simInput(i) = simInput(i).setVariable('wayp_path_vis',wayp_path_vis);
 end
 
 pkgDensity = pkgDensity_array(1);
@@ -60,7 +69,7 @@ disp(' ');
 
 %% Plot results
 plot_sim_res(simInput,simOut,waypoints,planex,planey,'Parallel Test',Elapsed_Time_Time_parallel)
-plot_sim_res_batt(simInput,simOut)
+% plot_sim_res_batt(simInput,simOut)
 plot_sim_res_att(simInput,simOut)
 
 %% Close parallel pool
@@ -87,7 +96,7 @@ clf(evalin('base',fig_handle_name))
 
 % Plot trajectories
 legendstr = cell(1,length(simOut));
-pkgSize = evalin('base','pkgSize');
+% pkgSize = evalin('base','pkgSize');
 for i=1:length(simOut)
     data_px = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.px;
     data_py = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.py;
@@ -101,7 +110,8 @@ for i=1:length(simOut)
         LineWidth = 0.5;
     end
     plot3(data_px.Data,data_py.Data,data_pz.Data,'LineWidth',LineWidth,'LineStyle',LineStyle)
-    legendstr{i} = sprintf('%3.2f kg',simInput(i).Variables(1).Value(end)*pkgSize(1)*pkgSize(2)*pkgSize(3));
+    % legendstr{i} = sprintf('%3.2d kg',simInput(i).Variables(1).Value(end)*pkgSize(1)*pkgSize(2)*pkgSize(3));
+    legendstr{i} = sprintf('maneuver %d',i);
     hold all
 end
 
@@ -231,7 +241,7 @@ for i=1:length(simOut)
     % hold off
     
     hold all
-    legendstr{i} = sprintf('%3.2f kg',i);
+    legendstr{i} = sprintf('maneuver %d',i);
 end
     
     grid on
