@@ -10,7 +10,7 @@ open_system(orig_mdl);
 quadcopter_package_parameters
 [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = ...
     quadcopter_package_select_trajectory(7,5);
-
+motor_gain_mult = 0;
 mdl = [orig_mdl '_pct_temp'];
 save_system(orig_mdl,mdl);
 
@@ -19,7 +19,7 @@ pkgSize = evalin('base','pkgSize');
 pkgVol  = pkgSize(1)*pkgSize(2)*pkgSize(3);
 pkgDensity_array = linspace(0.5/pkgVol,1.5/pkgVol,4);
 z_array= linspace(4,6,10);
-gain_array = linspace(1,0.8,10);
+gain_array = linspace(1,0.2,8);
 
 
 
@@ -217,12 +217,12 @@ for i=1:length(simOut)
     simlog_qz = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.yaw.Data;
     simlog_t  = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.px.Time;
     
-    ref_pxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.pos.Data(:,:)';
-    ref_vxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.vel.Data(:,:)';
-    ref_roll = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.roll.Data(:,:)';
-    ref_pitch = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.pitch.Data(:,:)';
-    ref_yaw = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.yaw.Data(:,:)';
-    
+    % ref_pxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.pos.Data(:,:)';
+    % ref_vxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.vel.Data(:,:)';
+    % ref_roll = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.roll.Data(:,:)';
+    % ref_pitch = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.pitch.Data(:,:)';
+    % ref_yaw = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.yaw.Data(:,:)';
+    % 
     % missionStatus = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Load.status.Data(end);
     % LineStyle = '-';
     % LineWidth = 2;
@@ -232,24 +232,73 @@ for i=1:length(simOut)
     %     LineStyle = ':';
     %     LineWidth = 0.5;
     % end
+    
+    % if(size(ref_pxyz,2)>3)
+    % ref_pxyz = ref_pxyz';
+    % ref_vxyz = ref_vxyz';
+    % end
 
-    if(size(ref_pxyz,2)>3)
-    ref_pxyz = ref_pxyz';
-    ref_vxyz = ref_vxyz';
-    end
-    
-    % plot(simlog_t, ref_pxyz(:,1), 'k--','LineWidth', 1,'DisplayName','Ref')
-    % hold on
-    % plot(simlog_t, simlog_px, 'LineWidth', 1,'DisplayName','Meas');
-    plot(simlog_t, squeeze(simlog_qy)*180/pi, 'LineWidth', 1,'DisplayName','Meas')
-    % hold off
-    
+    % X
+    simlog_handles(1) = subplot(3, 3, 1);
+    plot(simlog_t, simlog_px, 'LineWidth', 1,'DisplayName','Meas');
+    title('Pos x (m)')
+    linkaxes(simlog_handles, 'x')
     hold all
-    legendstr{i} = sprintf('maneuver %d',i);
-end
+
+    simlog_handles(2) = subplot(3, 3, 2);
+    plot(simlog_t, simlog_vx, 'LineWidth', 1,'DisplayName','Meas');
+    title('Vel x (m/s)')
+    linkaxes(simlog_handles, 'x')
+    hold all
     
-    grid on
-    title('Pitch sweep')
-    legend(legendstr,'Location','Best')
+    simlog_handles(3) = subplot(3, 3, 3);
+    plot(simlog_t, squeeze(simlog_qx)*180/pi, 'LineWidth', 1,'DisplayName','Meas');
+    title('Roll (deg)')
+    linkaxes(simlog_handles, 'x')
+    hold all
+
+    % Y
+    simlog_handles(4) = subplot(3, 3, 4);
+    plot(simlog_t, simlog_py, 'LineWidth', 1,'DisplayName','Meas');
+    title('Pos y (m)')
+    linkaxes(simlog_handles, 'x')
+    hold all
+
+    simlog_handles(5) = subplot(3, 3, 5);
+    plot(simlog_t, simlog_vy, 'LineWidth', 1,'DisplayName','Meas');
+    title('Vel y (m/s)')
+    linkaxes(simlog_handles, 'x')
+    hold all
+    
+    simlog_handles(6) = subplot(3, 3, 6);
+    plot(simlog_t, squeeze(simlog_qy)*180/pi, 'LineWidth', 1,'DisplayName','Meas');
+    title('Pitch (deg)')
+    linkaxes(simlog_handles, 'x')
+    hold all
+
+    % Z
+    simlog_handles(7) = subplot(3, 3, 7);
+    plot(simlog_t, simlog_pz, 'LineWidth', 1,'DisplayName','Meas');
+    title('Pos z (m)')
+    linkaxes(simlog_handles, 'x')
+    hold all
+
+    simlog_handles(8) = subplot(3, 3, 8);
+    plot(simlog_t, simlog_vz, 'LineWidth', 1,'DisplayName','Meas');
+    title('Vel z (m/s)')
+    linkaxes(simlog_handles, 'x')
+    hold all
+    
+    simlog_handles(9) = subplot(3, 3, 9);
+    plot(simlog_t, squeeze(simlog_qz)*180/pi, 'LineWidth', 1,'DisplayName','Meas');
+    title('Yaw (deg)')
+    linkaxes(simlog_handles, 'x')
     xlabel('Time (s)')
+
+    hold all
+    legendstr{i} = sprintf('maneuver %f',i);
+end
+    legend(legendstr,'Location','best')
+    xlabel('Time (s)')
+    clear simlog_handles
 end
