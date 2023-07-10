@@ -19,7 +19,7 @@ pkgSize = evalin('base','pkgSize');
 pkgVol  = pkgSize(1)*pkgSize(2)*pkgSize(3);
 pkgDensity_array = linspace(0.5/pkgVol,1.5/pkgVol,4);
 z_array= linspace(4,6,10);
-gain_array = linspace(1,0.2,8);
+gain_array = linspace(1,0.2,4);
 
 
 
@@ -28,7 +28,7 @@ clear simInput
 simInput(1:length(gain_array)) = Simulink.SimulationInput(mdl);
 for i=1:length(gain_array)
     % [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = ...
-    % quadcopter_package_select_trajectory(7,z_array(i));
+    % quadcopter_package_select_trajectory(7,zf_array(i));
     % simInput(i) = simInput(i).setVariable('waypoints',waypoints);
     % simInput(i) = simInput(i).setVariable('timespot_spl',timespot_spl);
     % simInput(i) = simInput(i).setVariable('spline_data',spline_data);
@@ -217,6 +217,11 @@ for i=1:length(simOut)
     simlog_qz = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.yaw.Data;
     simlog_t  = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.px.Time;
     
+    result_matrix = [simlog_t,simlog_px, simlog_py, ...
+        simlog_pz, simlog_vx, simlog_vy, ...
+        simlog_vz,squeeze(simlog_qx)*180/pi,squeeze(simlog_qy)*180/pi,squeeze(simlog_qz)*180/pi];
+    result_matrix_filename = ['fault_',num2str(1),'_maneuver_', num2str(i)];
+    writematrix(result_matrix, result_matrix_filename);
     % ref_pxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.pos.Data(:,:)';
     % ref_vxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.vel.Data(:,:)';
     % ref_roll = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.roll.Data(:,:)';
