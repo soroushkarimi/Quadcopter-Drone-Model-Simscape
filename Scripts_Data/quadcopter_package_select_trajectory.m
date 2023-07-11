@@ -1,4 +1,4 @@
-function [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = quadcopter_package_select_trajectory(path_number,diff_z,varargin)
+function [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = quadcopter_package_select_trajectory(path_number,diff_x, diff_y, diff_z,varargin)
 %quadcopter_select_trajectory Obtain parameters for selected quadcopter trajectory
 %   [waypoints, timespot_spl, spline_data, spline_yaw] = quadcopter_select_trajectory(path_number)
 %   This function returns the essential parameters that define the
@@ -13,8 +13,8 @@ function [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = qua
 
 % Copyright 2021-2023 The MathWorks, Inc.
 
-if(nargin == 3)
-    roundtrip = varargin{2};
+if(nargin == 5)
+    roundtrip = varargin{4};
 else
     roundtrip = false;
 end
@@ -83,9 +83,9 @@ switch (path_number)
         vApproach = 0.1;
     case 7
         waypoints = [ ...
-            -2    -2 0 2 2
-            -2    -2 0 2 2
-            0.14   5 diff_z  5 0.14];
+            -2    -2 0 diff_x 2
+            -2    -2 0 diff_y 2
+            0.14   5 5 diff_z 0.14];
         max_speed = 2;
         min_speed = 0.5;
         xApproach = [4 1];

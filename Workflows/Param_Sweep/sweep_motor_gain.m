@@ -9,8 +9,8 @@ orig_mdl = 'quadcopter_package_delivery';
 open_system(orig_mdl);
 quadcopter_package_parameters
 [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = ...
-    quadcopter_package_select_trajectory(7,5);
-motor_gain_mult = 0;
+    quadcopter_package_select_trajectory(7,2,2,5);
+motor_gain_mult = 1;
 mdl = [orig_mdl '_pct_temp'];
 save_system(orig_mdl,mdl);
 
@@ -18,24 +18,39 @@ save_system(orig_mdl,mdl);
 pkgSize = evalin('base','pkgSize');
 pkgVol  = pkgSize(1)*pkgSize(2)*pkgSize(3);
 pkgDensity_array = linspace(0.5/pkgVol,1.5/pkgVol,4);
-z_array= linspace(4,6,10);
-gain_array = linspace(1,0.2,4);
+gain_array = linspace(1,0.8,2);
 
+n = 5;
+[x, y, z] = sphere(n);
+sp_x = x;
+sp_y = y;
+sp_z = z+5;
+target_waypoint = zeros(3,n^2);
+for i=1:n+1
+    for j=1:n+1
+        target_waypoint(1,(n)*i + k) = sp_x(i,j);
+        target_waypoint(2,(n)*i + k) = sp_y(i,j);
+        target_waypoint(3,(n)*i + k) = sp_z(i,j);
+    end
+end
 
 
 clear simInput
 % simInput(1:length(z_array)) = Simulink.SimulationInput(mdl);
-simInput(1:length(gain_array)) = Simulink.SimulationInput(mdl);
+simInput(1:length(gain_array)*length(target_waypoint)) = Simulink.SimulationInput(mdl);
+runNum = 0;
 for i=1:length(gain_array)
-    % [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = ...
-    % quadcopter_package_select_trajectory(7,zf_array(i));
-    % simInput(i) = simInput(i).setVariable('waypoints',waypoints);
-    % simInput(i) = simInput(i).setVariable('timespot_spl',timespot_spl);
-    % simInput(i) = simInput(i).setVariable('spline_data',spline_data);
-    % simInput(i) = simInput(i).setVariable('spline_yaw',spline_yaw);
-    % simInput(i) = simInput(i).setVariable('wayp_path_vis',wayp_path_vis);
-    simInput(i) = simInput(i).setVariable('motor_gain_mult',gain_array(i));
-
+    for j=1:length(target_waypoint)
+        runNum = runNum+1;
+        [waypoints, timespot_spl, spline_data, spline_yaw, wayp_path_vis] = ...
+        quadcopter_package_select_trajectory(7,target_waypoint(1,j),target_waypoint(2,j),target_waypoint(3,j));
+        simInput(runNum) = simInput(runNum).setVariable('waypoints',waypoints);
+        simInput(runNum) = simInput(runNum).setVariable('timespot_spl',timespot_spl);
+        simInput(runNum) = simInput(runNum).setVariable('spline_data',spline_data);
+        simInput(runNum) = simInput(runNum).setVariable('spline_yaw',spline_yaw);
+        simInput(runNum) = simInput(runNum).setVariable('wayp_path_vis',wayp_path_vis);
+        simInput(runNum) = simInput(runNum).setVariable('motor_gain_mult',gain_array(i));
+    end
 end
 
 pkgDensity = pkgDensity_array(1);
@@ -58,7 +73,7 @@ save_system(mdl)
 warning off physmod:common:logging2:mli:mcos:kernel:SdiStreamSaveError
 timerVal = tic;
 simOut = parsim(simInput,'ShowSimulationManager','on',...
-    'ShowProgress','on','UseFastRestart','on',...
+    'ShowProgress','on','UseFastRestart','off',...
     'TransferBaseWorkspaceVariables','on');
 Elapsed_Time_Time_parallel  = toc(timerVal);
 warning on physmod:common:logging2:mli:mcos:kernel:SdiStreamSaveError
@@ -74,7 +89,8 @@ disp(' ');
 %% Plot results
 plot_sim_res(simInput,simOut,waypoints,planex,planey,'Parallel Test',Elapsed_Time_Time_parallel)
 % plot_sim_res_batt(simInput,simOut)
-plot_sim_res_att(simInput,simOut)
+% plot_sim_res_att(simInput,simOut)
+save_sim_data(simInput, simOut)
 
 %% Close parallel pool
 delete(gcp);
@@ -220,7 +236,7 @@ for i=1:length(simOut)
     result_matrix = [simlog_t,simlog_px, simlog_py, ...
         simlog_pz, simlog_vx, simlog_vy, ...
         simlog_vz,squeeze(simlog_qx)*180/pi,squeeze(simlog_qy)*180/pi,squeeze(simlog_qz)*180/pi];
-    result_matrix_filename = ['fault_',num2str(1),'_maneuver_', num2str(i)];
+    result_matrix_filename = ['run\fault_',num2str(1),'_maneuver_', num2str(i)];
     writematrix(result_matrix, result_matrix_filename);
     % ref_pxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.pos.Data(:,:)';
     % ref_vxyz = simOut(i).logsout_quadcopter_package_delivery.get('Ref').Values.vel.Data(:,:)';
@@ -306,4 +322,27 @@ end
     legend(legendstr,'Location','best')
     xlabel('Time (s)')
     clear simlog_handles
+end
+
+%% Save Sim Data
+
+function save_sim_data(simInput, simOut)
+    for i=1:length(simOut)
+    simlog_px = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.px.Data;
+    simlog_py = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.py.Data;
+    simlog_pz = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.pz.Data;
+    simlog_vx = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.vx.Data;
+    simlog_vy = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.vy.Data;
+    simlog_vz = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.vz.Data;
+    simlog_qx = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.roll.Data;
+    simlog_qy = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.pitch.Data;
+    simlog_qz = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.yaw.Data;
+    simlog_t  = simOut(i).logsout_quadcopter_package_delivery.get('Quadcopter').Values.Chassis.px.Time;
+    
+    result_matrix = [simlog_t,simlog_px, simlog_py, ...
+        simlog_pz, simlog_vx, simlog_vy, ...
+        simlog_vz,squeeze(simlog_qx)*180/pi,squeeze(simlog_qy)*180/pi,squeeze(simlog_qz)*180/pi];
+    result_matrix_filename = ['run\fault_',num2str(1),'_maneuver_', num2str(i)];
+    writematrix(result_matrix, result_matrix_filename);
+    end
 end
