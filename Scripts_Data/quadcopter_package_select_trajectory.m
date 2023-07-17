@@ -83,12 +83,12 @@ switch (path_number)
         vApproach = 0.1;
     case 7
         waypoints = [ ...
-            -2    -2 0 diff_x 2
-            -2    -2 0 diff_y 2
-            0.14   5 5 diff_z 0.14];
-        max_speed = 2;
-        min_speed = 0.5;
-        xApproach = [4 1];
+            0    0 diff_x diff_x
+            0    0 diff_y diff_y
+            0.14 5 diff_z 0.14];
+        max_speed = 1;
+        min_speed = 0.1;
+        xApproach = [4 0.5];
         vApproach = 0.1;
 end
 

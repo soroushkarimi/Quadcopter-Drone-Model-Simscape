@@ -18,7 +18,7 @@ save_system(orig_mdl,mdl);
 pkgSize = evalin('base','pkgSize');
 pkgVol  = pkgSize(1)*pkgSize(2)*pkgSize(3);
 pkgDensity_array = linspace(0.5/pkgVol,1.5/pkgVol,4);
-gain_array = linspace(1,0.8,2);
+gain_array = linspace(1,0.8,3);
 
 n = 5;
 [x, y, z] = sphere(n);
@@ -28,9 +28,9 @@ sp_z = z+5;
 target_waypoint = zeros(3,n^2);
 for i=1:n+1
     for j=1:n+1
-        target_waypoint(1,(n)*i + k) = sp_x(i,j);
-        target_waypoint(2,(n)*i + k) = sp_y(i,j);
-        target_waypoint(3,(n)*i + k) = sp_z(i,j);
+        target_waypoint(1,(n)*i + j) = sp_x(i,j);
+        target_waypoint(2,(n)*i + j) = sp_y(i,j);
+        target_waypoint(3,(n)*i + j) = sp_z(i,j);
     end
 end
 
